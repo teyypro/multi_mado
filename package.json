@@ -20,6 +20,7 @@
     "flexlayout-react": "^0.8.18",
     "lexical": "^0.39.0",
     "react": "^19.2.0",
+    "react-color": "^2.19.3",
     "react-dom": "^19.2.0",
     "react-quill-new": "^3.7.0"
   },

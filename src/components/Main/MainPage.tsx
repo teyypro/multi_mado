@@ -1,4 +1,3 @@
-// src/pages/MainPage.tsx
 import React, { useState, useRef } from 'react';
 import {
   Layout,
@@ -12,12 +11,17 @@ import {
 } from 'flexlayout-react';
 import 'flexlayout-react/style/light.css';
 
-// Import ReactQuillNew
 import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+import { QuillProvider, useQuillContext } from '../QuillContext';
+import FloatingToolbar from '../FloatingToolbar/FloatingToolbar'
 
 // ================== Editor Component cho mỗi tab ==================
 function QuillEditorTab({ tabId }: { tabId: string }) {
   const [value, setValue] = useState('');
+  const quillRef = useRef<ReactQuill>(null);
+  const { setActiveQuillRef } = useQuillContext();
 
   const modules = {
     toolbar: [
@@ -28,21 +32,26 @@ function QuillEditorTab({ tabId }: { tabId: string }) {
       ['link', 'image', 'video'],
       ['clean'],
     ],
-    // Bạn có thể thêm các module khác nếu cần (history, clipboard,...)
+  };
+
+  const handleFocus = () => {
+    if (quillRef.current) {
+      setActiveQuillRef(quillRef);
+    }
   };
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Toolbar sẽ tự động hiển thị bên trên nhờ modules.toolbar */}
       <ReactQuill
+        ref={quillRef}
         theme="snow"
         value={value}
         onChange={setValue}
         modules={modules}
         placeholder="Bắt đầu nhập nội dung..."
         style={{ flex: 1 }}
-        // Để tránh lỗi focus/selection khi nhiều tab, có thể thêm id riêng
         id={`editor-${tabId}`}
+        onFocus={handleFocus}
       />
     </div>
   );
@@ -122,13 +131,18 @@ function MainPage() {
   };
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <Layout
-        model={model}
-        factory={factory}
-        onRenderTabSet={onRenderTabSet}
-      />
-    </div>
+    <QuillProvider>
+      <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+        <Layout
+          model={model}
+          factory={factory}
+          onRenderTabSet={onRenderTabSet}
+        />
+
+        {/* Floating toolbar chung cho toàn bộ app */}
+        <FloatingToolbar />
+      </div>
+    </QuillProvider>
   );
 }
 

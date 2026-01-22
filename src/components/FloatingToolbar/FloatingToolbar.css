@@ -1,0 +1,82 @@
+.floating-toolbar {
+  background: #2d2d2d;
+  border-radius: 8px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  border: 1px solid #444;
+}
+
+.floating-toolbar button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  padding: 6px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  min-width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.floating-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.color-picker-wrapper {
+  position: relative;
+}
+
+.color-btn {
+  font-size: 20px;
+  font-weight: bold;
+  padding: 6px 12px !important;
+}
+
+/* Nút highlight có nền màu */
+.highlight-btn {
+  font-weight: bold;
+  color: #000;
+  border-radius: 4px;
+  min-width: 40px;
+}
+
+/* Popup chứa input color */
+.color-popover {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  margin-top: 8px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+}
+
+/* Ẩn viền mặc định của input color và làm đẹp */
+.color-popover input[type="color"] {
+  width: 180px;
+  height: 40px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  background: transparent;
+}
+
+/* Ẩn phần hiển thị màu mặc định và chỉ hiện picker */
+.color-popover input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.color-popover input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
