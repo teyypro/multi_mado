@@ -1,0 +1,30 @@
+.toolbar {
+  background-color: #2d2d2d;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.btn {
+  background-color: #3c3c3c;
+  color: #e0e0e0;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn:hover {
+  background-color: #4c4c4c;
+}
+
+.separator {
+  width: 1px;
+  height: 24px;
+  background-color: #555;
+  margin: 0 8px;
+}
