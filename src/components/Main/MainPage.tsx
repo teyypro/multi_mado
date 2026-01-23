@@ -41,7 +41,7 @@ function QuillEditorTab({ tabId }: { tabId: string }) {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div spellCheck={false} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <ReactQuill
         ref={quillRef}
         theme="snow"

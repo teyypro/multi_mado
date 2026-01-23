@@ -30,33 +30,51 @@ const FloatingToolbar: React.FC = () => {
 
   useEffect(() => {
     const quill = activeQuillRef?.current?.getEditor?.();
-    if (!quill) {
-      setVisible(false);
-      return;
-    }
+    if (!quill) return;
 
-    const handleSelectionChange = () => {
+    let mouseDown = false;
+
+    const handleMouseDown = () => {
+      mouseDown = true;
+      setVisible(false);
+      setShowColorPaletteFor(null);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      mouseDown = false;
+
       const range = quill.getSelection();
       if (range && range.length > 0) {
-        const bounds = quill.getBounds(range.index, range.length);
-        if (bounds) {
-          const editorRect = quill.container.getBoundingClientRect();
-          const top = editorRect.top + bounds.top - 100;
-          const left = editorRect.left + bounds.left + bounds.width / 2 - 140;
+        // Lấy tọa độ chuột lúc thả chuột
+        let top = e.clientY;
+        let left = e.clientX;
 
-          const finalTop = Math.max(10, top);
-          const finalLeft = Math.max(10, Math.min(window.innerWidth - 300, left));
+        // Dịch toolbar lên trên và lệch trái để không che vùng text
+        top -= 40;   // cách phía trên con trỏ khoảng 70px
+        left -= 10; // lệch trái khoảng 150px (tùy độ rộng toolbar của bạn)
 
-          setPosition({ top: finalTop, left: finalLeft });
-          setVisible(true);
-        }
+        // Giới hạn không cho toolbar ra ngoài màn hình
+        top = Math.max(10, top);
+        left = Math.max(10, Math.min(window.innerWidth - 320, left)); // 320 là độ rộng ước tính của toolbar
+
+        setPosition({ top, left });
+        setVisible(true);
       } else {
         setVisible(false);
         setShowColorPaletteFor(null);
       }
     };
 
-    quill.on('selection-change', handleSelectionChange);
+    const handleSelectionChange = () => {
+      // Chỉ ẩn khi không có selection và không đang bấm chuột
+      if (!mouseDown) {
+        const range = quill.getSelection();
+        if (!range || range.length === 0) {
+          setVisible(false);
+          setShowColorPaletteFor(null);
+        }
+      }
+    };
 
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
@@ -64,10 +82,18 @@ const FloatingToolbar: React.FC = () => {
       }
     };
 
+    // Thêm event listener vào vùng soạn thảo Quill
+    quill.root.addEventListener('mousedown', handleMouseDown);
+    quill.root.addEventListener('mouseup', handleMouseUp as EventListener);
+
+    quill.on('selection-change', handleSelectionChange);
+
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('scroll', () => setVisible(false), true);
 
     return () => {
+      quill.root.removeEventListener('mousedown', handleMouseDown);
+      quill.root.removeEventListener('mouseup', handleMouseUp as EventListener);
       quill.off('selection-change', handleSelectionChange);
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', () => setVisible(false), true);
@@ -108,10 +134,9 @@ const FloatingToolbar: React.FC = () => {
     setShowColorPaletteFor(null);
   };
 
-  // Áp dụng màu hiện tại khi click button
   const applyCurrentTextColor = () => {
     applyFormat('color', textColor);
-    setShowColorPaletteFor(null); // Đóng palette nếu đang mở
+    setShowColorPaletteFor(null);
   };
 
   const applyCurrentHighlightColor = () => {
@@ -130,6 +155,7 @@ const FloatingToolbar: React.FC = () => {
             top: `${position.top}px`,
             left: `${position.left}px`,
             zIndex: 10000,
+            pointerEvents: 'auto', // đảm bảo toolbar có thể click được
           }}
         >
           <div className="toolbar-main">
@@ -149,11 +175,10 @@ const FloatingToolbar: React.FC = () => {
             <div
               className="color-picker-group"
               onMouseEnter={() => setShowColorPaletteFor('text')}
-              // onMouseLeave={() => setShowColorPaletteFor(null)}
             >
               <button
                 className="color-btn"
-                onClick={applyCurrentTextColor}           // Click → áp dụng màu hiện tại
+                onClick={applyCurrentTextColor}
                 title="Text Color (Click to apply current / Hover to choose)"
                 style={{ color: textColor }}
               >
@@ -183,7 +208,7 @@ const FloatingToolbar: React.FC = () => {
             >
               <button
                 className="color-btn highlight-btn"
-                onClick={applyCurrentHighlightColor}     // Click → áp dụng màu hiện tại
+                onClick={applyCurrentHighlightColor}
                 title="Highlight (Click to apply current / Hover to choose)"
                 style={{ backgroundColor: highlightColor }}
               >
