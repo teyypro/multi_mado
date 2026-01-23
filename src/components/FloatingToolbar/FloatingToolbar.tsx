@@ -8,13 +8,25 @@ const FloatingToolbar: React.FC = () => {
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  // Refs cho input color
-  const textColorInputRef = useRef<HTMLInputElement>(null);
-  const highlightColorInputRef = useRef<HTMLInputElement>(null);
-
-  // State lưu màu (dùng để hiển thị trên nút)
+  // State cho màu hiện tại
   const [textColor, setTextColor] = useState('#000000');
-  const [highlightColor, setHighlightColor] = useState('#ffff00');
+  const [highlightColor, setHighlightColor] = useState('#fff9c4');
+
+  // State kiểm soát hiển thị palette
+  const [showColorPaletteFor, setShowColorPaletteFor] = useState<'text' | 'highlight' | null>(null);
+
+  // Danh sách màu cho TEXT
+  const textPresetColors = [
+    '#000000', '#ffffff', '#d32f2f', '#388e3c', '#1976d2',
+    '#f57c00', '#7b1fa2', '#0288d1', '#689f38', '#e64a19',
+    '#455a64', '#757575', '#ef5350', '#ab47bc',
+  ];
+
+  // Danh sách màu HIGHLIGHT
+  const highlightPresetColors = [
+    '#FFFFFF', '#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#0000FF', '#FF0000',
+    '#B3D4FF', '#B2DFDB', '#C8E6C9', '#E1BEE7', '#FFCDD2', '#FFF9C4', '#000000',
+  ];
 
   useEffect(() => {
     const quill = activeQuillRef?.current?.getEditor?.();
@@ -29,7 +41,7 @@ const FloatingToolbar: React.FC = () => {
         const bounds = quill.getBounds(range.index, range.length);
         if (bounds) {
           const editorRect = quill.container.getBoundingClientRect();
-          const top = editorRect.top + bounds.top - 60;
+          const top = editorRect.top + bounds.top - 100;
           const left = editorRect.left + bounds.left + bounds.width / 2 - 140;
 
           const finalTop = Math.max(10, top);
@@ -40,6 +52,7 @@ const FloatingToolbar: React.FC = () => {
         }
       } else {
         setVisible(false);
+        setShowColorPaletteFor(null);
       }
     };
 
@@ -47,7 +60,7 @@ const FloatingToolbar: React.FC = () => {
 
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        // Không cần ẩn gì nữa
+        setShowColorPaletteFor(null);
       }
     };
 
@@ -61,7 +74,6 @@ const FloatingToolbar: React.FC = () => {
     };
   }, [activeQuillRef]);
 
-  // Hàm toggle định dạng (bold, italic, underline)
   const toggleFormat = (format: string) => {
     const quill = activeQuillRef?.current?.getEditor?.();
     if (!quill) return;
@@ -69,10 +81,7 @@ const FloatingToolbar: React.FC = () => {
     const range = quill.getSelection();
     if (!range || range.length === 0) return;
 
-    // Lấy trạng thái hiện tại của định dạng trong selection
     const currentFormat = quill.getFormat(range);
-
-    // Toggle: nếu đang bật → tắt, ngược lại bật
     const newValue = !currentFormat[format];
 
     quill.format(format, newValue);
@@ -87,12 +96,27 @@ const FloatingToolbar: React.FC = () => {
     }
   };
 
-  const openTextColorPicker = () => {
-    textColorInputRef.current?.click();
+  const handleTextColorChange = (color: string) => {
+    setTextColor(color);
+    applyFormat('color', color);
+    setShowColorPaletteFor(null);
   };
 
-  const openHighlightPicker = () => {
-    highlightColorInputRef.current?.click();
+  const handleHighlightColorChange = (color: string) => {
+    setHighlightColor(color);
+    applyFormat('background', color);
+    setShowColorPaletteFor(null);
+  };
+
+  // Áp dụng màu hiện tại khi click button
+  const applyCurrentTextColor = () => {
+    applyFormat('color', textColor);
+    setShowColorPaletteFor(null); // Đóng palette nếu đang mở
+  };
+
+  const applyCurrentHighlightColor = () => {
+    applyFormat('background', highlightColor);
+    setShowColorPaletteFor(null);
   };
 
   return (
@@ -108,67 +132,86 @@ const FloatingToolbar: React.FC = () => {
             zIndex: 10000,
           }}
         >
-          {/* Bold - toggle */}
-          <button onClick={() => toggleFormat('bold')} title="Bold">
-            <strong>B</strong>
-          </button>
-
-          {/* Italic - toggle */}
-          <button onClick={() => toggleFormat('italic')} title="Italic">
-            <em>I</em>
-          </button>
-
-          {/* Underline - toggle */}
-          <button onClick={() => toggleFormat('underline')} title="Underline">
-            <u>U</u>
-          </button>
-
-          {/* Text Color */}
-          <div className="color-picker-wrapper">
-            <button
-              className="color-btn"
-              onClick={openTextColorPicker}
-              title="Text Color"
-              style={{ color: textColor }}
-            >
-              A
+          <div className="toolbar-main">
+            <button onClick={() => toggleFormat('bold')} title="Bold">
+              <strong>B</strong>
             </button>
 
-            <input
-              type="color"
-              ref={textColorInputRef}
-              value={textColor}
-              onChange={(e) => {
-                const newColor = e.target.value;
-                setTextColor(newColor);
-                applyFormat('color', newColor);
-              }}
-              style={{ display: 'none' }}
-            />
-          </div>
-
-          {/* Highlight */}
-          <div className="color-picker-wrapper">
-            <button
-              className="color-btn highlight-btn"
-              onClick={openHighlightPicker}
-              title="Highlight"
-              style={{ backgroundColor: highlightColor }}
-            >
-              H
+            <button onClick={() => toggleFormat('italic')} title="Italic">
+              <em>I</em>
             </button>
 
-            <input
-              type="color"
-              ref={highlightColorInputRef}
-              value={highlightColor}
-              onChange={(e) => {
-                const newColor = e.target.value;
-                setHighlightColor(newColor);
-                applyFormat('background', newColor);
-              }}
-              style={{ display: 'none' }}
-            />
+            <button onClick={() => toggleFormat('underline')} title="Underline">
+              <u>U</u>
+            </button>
+
+            {/* Text Color */}
+            <div
+              className="color-picker-group"
+              onMouseEnter={() => setShowColorPaletteFor('text')}
+              // onMouseLeave={() => setShowColorPaletteFor(null)}
+            >
+              <button
+                className="color-btn"
+                onClick={applyCurrentTextColor}           // Click → áp dụng màu hiện tại
+                title="Text Color (Click to apply current / Hover to choose)"
+                style={{ color: textColor }}
+              >
+                A
+              </button>
+
+              {showColorPaletteFor === 'text' && (
+                <div className="color-palette">
+                  {textPresetColors.map((color) => (
+                    <button
+                      key={color}
+                      className="color-swatch"
+                      style={{ backgroundColor: color }}
+                      onClick={() => handleTextColorChange(color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Highlight Color */}
+            <div
+              className="color-picker-group"
+              onMouseEnter={() => setShowColorPaletteFor('highlight')}
+              onMouseLeave={() => setShowColorPaletteFor(null)}
+            >
+              <button
+                className="color-btn highlight-btn"
+                onClick={applyCurrentHighlightColor}     // Click → áp dụng màu hiện tại
+                title="Highlight (Click to apply current / Hover to choose)"
+                style={{ backgroundColor: highlightColor }}
+              >
+                H
+              </button>
+
+              {showColorPaletteFor === 'highlight' && (
+                <div className="color-palette">
+                  {highlightPresetColors.map((color) => (
+                    <button
+                      key={color}
+                      className="color-swatch"
+                      style={{ backgroundColor: color }}
+                      onClick={() => handleHighlightColorChange(color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button title="Save selection">
+              💾 Save
+            </button>
+
+            <button title="Read aloud">
+              🔊 Read
+            </button>
           </div>
         </div>
       )}
