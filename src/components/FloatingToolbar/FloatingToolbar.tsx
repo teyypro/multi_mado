@@ -1,19 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuillContext } from '../QuillContext';
 import './FloatingToolbar.css';
+import { useSavedContent } from '../SaveData/SavedContentContext';
+import SavedContentsViewer from '../SaveData/SavedContentsViewer';
 
 const FloatingToolbar: React.FC = () => {
   const { activeQuillRef } = useQuillContext();
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
-
+  const { addSavedContent } = useSavedContent(); // ← dùng hàm lưu từ context
   // State cho màu hiện tại
   const [textColor, setTextColor] = useState('#000000');
   const [highlightColor, setHighlightColor] = useState('#fff9c4');
 
   // State kiểm soát hiển thị palette
   const [showColorPaletteFor, setShowColorPaletteFor] = useState<'text' | 'highlight' | null>(null);
+
+// State cho nút Save
+  const [saveButtonText, setSaveButtonText] = useState('Save');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // State cho việc hiển thị SavedContentsViewer
+  const [showViewer, setShowViewer] = useState(false);
+
+  // Hover state cho nút Save
+  const [isHoverSave, setIsHoverSave] = useState(false);
 
   // Danh sách màu cho TEXT
   const textPresetColors = [
@@ -143,6 +155,35 @@ const FloatingToolbar: React.FC = () => {
     applyFormat('background', highlightColor);
     setShowColorPaletteFor(null);
   };
+  
+// ... (giữ nguyên toàn bộ phần import và state)
+
+const handleSave = () => {
+  const quill = activeQuillRef?.current?.getEditor?.();
+  if (!quill) return;
+
+  // Lấy nội dung dạng text thuần (không có HTML)
+  const plainText = quill.getText().trim(); // hoặc quill.root.innerText.trim()
+
+  if (plainText) {
+    // Lưu text thuần vào context
+    addSavedContent(plainText);
+
+    // Hiển thị thông báo thành công
+    setSaveButtonText('Saved ✓');
+    setIsSaving(true);
+
+    // Sau 3 giây trở lại chữ "Save"
+    setTimeout(() => {
+      setSaveButtonText('Save');
+      setIsSaving(false);
+    }, 3000);
+  } else {
+    alert('Không có nội dung để lưu!');
+  }
+};
+
+// ... (giữ nguyên phần return và toàn bộ JSX)
 
   return (
     <>
@@ -155,7 +196,7 @@ const FloatingToolbar: React.FC = () => {
             top: `${position.top}px`,
             left: `${position.left}px`,
             zIndex: 10000,
-            pointerEvents: 'auto', // đảm bảo toolbar có thể click được
+            pointerEvents: 'auto',
           }}
         >
           <div className="toolbar-main">
@@ -230,16 +271,60 @@ const FloatingToolbar: React.FC = () => {
               )}
             </div>
 
-            <button title="Save selection">
-              💾 Save
-            </button>
+           {/* Nút Save + View */}
+<div
+  className="save-group"
+  onMouseEnter={() => setIsHoverSave(true)}
+  onMouseLeave={() => setIsHoverSave(false)}
+>
+  <button
+    onClick={handleSave}
+    title="Lưu nội dung"
+    disabled={isSaving}
+    className={`save-btn ${isSaving ? 'saving' : ''}`}
+  >
+    {saveButtonText}
+  </button>
 
-            <button title="Read aloud">
-              🔊 Read
-            </button>
+  {/* Nút View hiện khi hover */}
+  {isHoverSave && (
+    <button
+      onClick={() => setShowViewer(true)}
+      title="Xem nội dung đã lưu"
+      className="view-btn"
+    >
+      View
+    </button>
+  )}
+</div>
+
+<button title="Read aloud">
+  🔊 Read
+</button>
           </div>
         </div>
       )}
+
+      {/* Modal hiển thị SavedContentsViewer */}
+{showViewer && (
+  <div
+    className="viewer-overlay"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) setShowViewer(false);
+    }}
+  >
+    <div className="viewer-modal">
+      <button
+        onClick={() => setShowViewer(false)}
+        className="viewer-close-btn"
+      >
+        ✕
+      </button>
+
+      <SavedContentsViewer />
+    </div>
+  </div>
+)}
     </>
   );
 };

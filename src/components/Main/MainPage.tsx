@@ -16,6 +16,7 @@ import 'react-quill-new/dist/quill.snow.css';
 
 import { QuillProvider, useQuillContext } from '../QuillContext';
 import FloatingToolbar from '../FloatingToolbar/FloatingToolbar'
+import { SavedContentProvider } from '../SaveData/SavedContentContext';
 
 // ================== Editor Component cho mỗi tab ==================
 function QuillEditorTab({ tabId }: { tabId: string }) {
@@ -131,6 +132,7 @@ function MainPage() {
   };
 
   return (
+    <SavedContentProvider>
     <QuillProvider>
       <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
         <Layout
@@ -143,6 +145,7 @@ function MainPage() {
         <FloatingToolbar />
       </div>
     </QuillProvider>
+    </SavedContentProvider>
   );
 }
 
