@@ -13,6 +13,7 @@ import 'flexlayout-react/style/light.css';
 
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import '../quill-custom.css'
 
 import { QuillProvider, useQuillContext } from '../QuillContext';
 import FloatingToolbar from '../FloatingToolbar/FloatingToolbar'
@@ -24,16 +25,29 @@ function QuillEditorTab({ tabId }: { tabId: string }) {
   const quillRef = useRef<ReactQuill>(null);
   const { setActiveQuillRef } = useQuillContext();
 
-  const modules = {
-    toolbar: [
-      [{ header: [1, 2, 3, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      [{ color: [] }, { background: [] }],
-      ['link', 'image', 'video'],
-      ['clean'],
-    ],
-  };
+ const modules = {
+  toolbar: [
+    // Nhóm 1: Header (các mức tiêu đề)
+    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+
+    // Nhóm 2: Font family (nhiều font hơn)
+    [{ 'font': [] }],
+
+    // Nhóm 3: Text style cơ bản
+    ['bold', 'italic', 'underline', 'strike'],
+
+    // Nhóm 4: Màu sắc
+    [{ 'color': [] }, { 'background': [] }],
+
+    // Nhóm 5: Danh sách & Căn chỉnh
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ 'align': [] }],
+
+
+    // Nhóm 8: Block style & Clean
+    ['code-block', 'clean']
+  ]
+};
 
   const handleFocus = () => {
     if (quillRef.current) {
@@ -42,17 +56,26 @@ function QuillEditorTab({ tabId }: { tabId: string }) {
   };
 
   return (
-    <div spellCheck={false} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div spellCheck = "false"
+      className="quill-tab-wrapper"
+      style={{ 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column',
+        position: 'relative',
+      }}
+    >
       <ReactQuill
         ref={quillRef}
         theme="snow"
         value={value}
         onChange={setValue}
         modules={modules}
-        placeholder="Bắt đầu nhập nội dung..."
+        placeholder="Type here..."
         style={{ flex: 1 }}
         id={`editor-${tabId}`}
         onFocus={handleFocus}
+        className="custom-quill-editor"
       />
     </div>
   );
@@ -86,7 +109,7 @@ const initialJson: IJsonModel = {
           {
             type: 'tab',
             id: 'welcome',
-            name: 'Welcome',
+            name: 'Tab 1',
             component: 'quill-editor',
           },
         ],
