@@ -272,8 +272,8 @@ const highlightPresetColors = [
     }
 
     utterance.rate = 0.7;
-    utterance.pitch = 0.8;
-    utterance.volume = 2.0;
+    utterance.pitch = 1;
+    utterance.volume = 1.0;
 
     utterance.onerror = (e) => {
       console.error('Speech error:', e);
