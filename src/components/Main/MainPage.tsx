@@ -27,13 +27,8 @@ function QuillEditorTab({ tabId }: { tabId: string }) {
 
  const modules = {
   toolbar: [
-    // Nhóm 1: Header (các mức tiêu đề)
-    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-
-    // Nhóm 2: Font family (nhiều font hơn)
-    [{ 'font': [] }],
-
-    // Nhóm 3: Text style cơ bản
+      [{ 'font': [] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
     ['bold', 'italic', 'underline', 'strike'],
 
     // Nhóm 4: Màu sắc
