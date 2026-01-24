@@ -1,72 +1,49 @@
+// src/components/FloatingToolbar.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuillContext } from '../QuillContext';
-import './FloatingToolbar.css';
 import { useSavedContent } from '../SaveData/SavedContentContext';
 import SavedContentsViewer from '../SaveData/SavedContentsViewer';
+import './FloatingToolbar.css';
+
+// Puter.js sẽ được load qua script tag trong index.html
+// <script src="https://js.puter.com/v2/"></script>
 
 const FloatingToolbar: React.FC = () => {
   const { activeQuillRef } = useQuillContext();
+  const { addSavedContent } = useSavedContent();
+
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const { addSavedContent } = useSavedContent();
 
-  // State cho màu hiện tại
-  const [textColor, setTextColor] = useState('#000000');
-  const [highlightColor, setHighlightColor] = useState('#fff9c4');
-
-  // State kiểm soát hiển thị palette
+  // State cho màu
+  const [textColor, setTextColor] = useState<string>('#000000');
+  const [highlightColor, setHighlightColor] = useState<string>('#fff9c4');
   const [showColorPaletteFor, setShowColorPaletteFor] = useState<'text' | 'highlight' | null>(null);
 
-  // State cho nút Save
+  // State cho Save
   const [saveButtonText, setSaveButtonText] = useState('Save');
   const [isSaving, setIsSaving] = useState(false);
-
-  // State cho việc hiển thị SavedContentsViewer
+  const [isHoverSave, setIsHoverSave] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
 
-  // Hover state cho nút Save
-  const [isHoverSave, setIsHoverSave] = useState(false);
+  // Puter TTS
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Ref để lưu giọng nói tốt nhất (chỉ set 1 lần)
-  const bestJapaneseVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  // Danh sách màu
+  const textPresetColors = [
+    '#000000', '#ffffff', '#b91c1c', '#c2410c', '#a16207', '#047857',
+    '#1d4ed8', '#6b21a8', '#be185d', '#7c2d12', '#334155', '#475569',
+    '#5b21b6', '#0f766e',
+  ];
 
-  // Danh sách màu cho TEXT
-const textPresetColors = [
-  '#000000',        // 1. Đen (pure black)
-  '#ffffff',        // 2. Trắng (pure white)
+  const highlightPresetColors = [
+    '#FFF176', '#FFD54F', '#FFB74D', '#E57373', '#F06292', '#BA68C8',
+    '#9575CD', '#7986CB', '#64B5F6', '#4FC3F7', '#4DB6AC', '#81C784',
+    '#AED581', '#DCE775',
+  ];
 
-  '#b91c1c',        // 3. Đỏ đậm
-  '#c2410c',        // 4. Cam đậm
-  '#a16207',        // 5. Vàng đậm
-  '#047857',        // 6. Xanh lá đậm
-  '#1d4ed8',        // 7. Xanh dương đậm
-  '#6b21a8',        // 8. Tím đậm
-  '#be185d',        // 9. Hồng đậm
-  '#7c2d12',        // 10. Nâu đỏ
-  '#334155',        // 11. Xám đậm (slate)
-  '#475569',        // 12. Xám trung
-  '#5b21b6',        // 13. Violet đậm (một sắc tím khác biệt)
-  '#0f766e',        // 14. Teal đậm (xanh ngọc đậm, rất đẹp và phổ biến)
-];
-
-const highlightPresetColors = [
-  '#FFF176',    // Vàng đậm vừa (yellow-300) – highlight kinh điển
-  '#FFD54F',    // Vàng cam đậm vừa (amber-300)
-  '#FFB74D',    // Cam đậm vừa (orange-300)
-  '#E57373',    // Đỏ/hồng đậm vừa (red-300)
-  '#F06292',    // Hồng đậm vừa (pink-300)
-  '#BA68C8',    // Tím đậm vừa (purple-300)
-  '#9575CD',    // Violet đậm vừa (deep purple-300)
-  '#7986CB',    // Xanh dương đậm vừa (indigo-300)
-  '#64B5F6',    // Xanh dương sáng đậm vừa (blue-300)
-  '#4FC3F7',    // Cyan đậm vừa (cyan-300)
-  '#4DB6AC',    // Xanh ngọc đậm vừa (teal-300)
-  '#81C784',    // Xanh lá đậm vừa (green-300)
-  '#AED581',    // Xanh lá sáng đậm vừa (light green-300)
-  '#DCE775',    // Lime đậm vừa (lime-300)
-];
-
+  // ── Xử lý hiển thị toolbar khi chọn text ──
   useEffect(() => {
     const quill = activeQuillRef?.current?.getEditor?.();
     if (!quill) return;
@@ -81,18 +58,12 @@ const highlightPresetColors = [
 
     const handleMouseUp = (e: MouseEvent) => {
       mouseDown = false;
-
       const range = quill.getSelection();
       if (range && range.length > 0) {
-        let top = e.clientY;
-        let left = e.clientX;
-
-        top -= 40;
-        left -= 10;
-
+        let top = e.clientY - 40;
+        let left = e.clientX - 10;
         top = Math.max(10, top);
         left = Math.max(10, Math.min(window.innerWidth - 320, left));
-
         setPosition({ top, left });
         setVisible(true);
       } else {
@@ -119,9 +90,7 @@ const highlightPresetColors = [
 
     quill.root.addEventListener('mousedown', handleMouseDown);
     quill.root.addEventListener('mouseup', handleMouseUp as EventListener);
-
     quill.on('selection-change', handleSelectionChange);
-
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('scroll', () => setVisible(false), true);
 
@@ -134,21 +103,18 @@ const highlightPresetColors = [
     };
   }, [activeQuillRef]);
 
+  // ── Format helpers ──
   const toggleFormat = (format: string) => {
     const quill = activeQuillRef?.current?.getEditor?.();
     if (!quill) return;
-
     const range = quill.getSelection();
     if (!range || range.length === 0) return;
-
-    const currentFormat = quill.getFormat(range);
-    const newValue = !currentFormat[format];
-
-    quill.format(format, newValue);
+    const current = quill.getFormat(range);
+    quill.format(format, !current[format]);
     quill.focus();
   };
 
-  const applyFormat = (format: string, value: any = true) => {
+  const applyFormat = (format: string, value: any) => {
     const quill = activeQuillRef?.current?.getEditor?.();
     if (quill) {
       quill.format(format, value);
@@ -168,34 +134,20 @@ const highlightPresetColors = [
     setShowColorPaletteFor(null);
   };
 
-  const applyCurrentTextColor = () => {
-    applyFormat('color', textColor);
-    setShowColorPaletteFor(null);
-  };
-
-  const applyCurrentHighlightColor = () => {
-    applyFormat('background', highlightColor);
-    setShowColorPaletteFor(null);
-  };
-
+  // ── Save content ──
   const handleSave = () => {
     const quill = activeQuillRef?.current?.getEditor?.();
     if (!quill) return;
 
     const range = quill.getSelection(true);
-    let textToSave = '';
-
-    if (range && range.length > 0) {
-      textToSave = quill.getText(range.index, range.length).trim();
-    } else {
-      textToSave = quill.getText().trim();
-    }
+    let textToSave = range && range.length > 0
+      ? quill.getText(range.index, range.length).trim()
+      : quill.getText().trim();
 
     if (textToSave) {
       addSavedContent(textToSave);
       setSaveButtonText('Saved ✓');
       setIsSaving(true);
-
       setTimeout(() => {
         setSaveButtonText('Save');
         setIsSaving(false);
@@ -205,81 +157,60 @@ const highlightPresetColors = [
     }
   };
 
-  // ── Chọn giọng nói tốt nhất chỉ 1 lần khi mount ──
-  useEffect(() => {
-    const loadAndSelectBestVoice = () => {
-      const voices = window.speechSynthesis.getVoices();
-      const japaneseVoices = voices.filter(voice => voice.lang === 'ja-JP' || voice.lang === 'ja_JP');
+  // ── Puter.js Japanese TTS ──
+  const handleReadAloud = async () => {
+    if (isSpeaking) {
+      // Nếu đang đọc → dừng lại
+      try {
+        // Puter không có stop trực tiếp, nhưng ta có thể reload page hoặc dùng hack
+        // Cách đơn giản nhất: reload audio (nhưng không có API stop → thông báo)
+        alert('Đang phát. Vui lòng chờ hết hoặc reload trang để dừng.');
+      } catch {}
+      return;
+    }
 
-      if (japaneseVoices.length > 0) {
-        const preferredVoices = [
-          'Google 日本語',
-          'Microsoft Haruka - Japanese',
-          'Microsoft Nanami - Japanese',
-          'Kyoko',
-        ];
-
-        let bestVoice = japaneseVoices.find(voice =>
-          preferredVoices.some(name => voice.name.includes(name))
-        );
-
-        if (!bestVoice) {
-          bestVoice = japaneseVoices[0];
-        }
-
-        bestJapaneseVoiceRef.current = bestVoice;
-      }
-    };
-
-    // Gọi lần đầu
-    loadAndSelectBestVoice();
-
-    // Đăng ký event để load lại nếu voices chưa sẵn sàng
-    window.speechSynthesis.onvoiceschanged = loadAndSelectBestVoice;
-
-    // Cleanup
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  // ── Read Aloud: Nhấn nhiều lần sẽ xếp hàng đọc liên tục ──
-  const handleReadAloud = () => {
     const quill = activeQuillRef?.current?.getEditor?.();
     if (!quill) return;
 
     const range = quill.getSelection(true);
-    let textToRead = '';
-
-    if (range && range.length > 0) {
-      textToRead = quill.getText(range.index, range.length).trim();
-    } else {
-      textToRead = quill.getText().trim();
-    }
+    let textToRead = range && range.length > 0
+      ? quill.getText(range.index, range.length).trim()
+      : quill.getText().trim();
 
     if (!textToRead) {
       alert('No content to read!');
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    utterance.lang = 'ja-JP';
+    setIsSpeaking(true);
 
-    // Sử dụng giọng đã chọn trước đó (nếu có)
-    if (bestJapaneseVoiceRef.current) {
-      utterance.voice = bestJapaneseVoiceRef.current;
+    try {
+      // Puter TTS - Japanese (AWS Polly neural voices)
+      const audio = await (window as any).puter.ai.txt2speech(textToRead, {
+        language: 'ja-JP',
+        //voice: 'Mizuki',        // Rất tự nhiên (nữ)
+        voice: 'Kazuha',     // Nam - thay đổi nếu muốn
+        engine: 'neural',
+        provider: 'aws-polly',
+      });
+
+      audio.play();
+
+      // Khi kết thúc → reset trạng thái
+      audio.onended = () => {
+        setIsSpeaking(false);
+      };
+
+      audio.onerror = (err: any) => {
+        console.error('TTS error:', err);
+        setIsSpeaking(false);
+        alert('Không thể phát giọng nói. Vui lòng thử lại.');
+      };
+    } catch (err) {
+      console.error('Puter TTS failed:', err);
+      setIsSpeaking(false);
+      alert('Lỗi kết nối Puter TTS. Vui lòng kiểm tra mạng.');
     }
-
-    utterance.rate = 0.7;
-    utterance.pitch = 1;
-    utterance.volume = 1.0;
-
-    utterance.onerror = (e) => {
-      console.error('Speech error:', e);
-    };
-
-    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -298,7 +229,7 @@ const highlightPresetColors = [
         >
           <div className="toolbar-main">
 
-  {/* Highlight Color */}
+            {/* Highlight Color */}
             <div
               className="color-picker-group"
               onMouseEnter={() => setShowColorPaletteFor('highlight')}
@@ -306,7 +237,7 @@ const highlightPresetColors = [
             >
               <button
                 className="color-btn highlight-btn"
-                onClick={applyCurrentHighlightColor}
+                onClick={() => applyFormat('background', highlightColor)}
                 title="Highlight (Click to apply current / Hover to choose)"
                 style={{ backgroundColor: highlightColor }}
               >
@@ -348,7 +279,7 @@ const highlightPresetColors = [
             >
               <button
                 className="color-btn"
-                onClick={applyCurrentTextColor}
+                onClick={() => applyFormat('color', textColor)}
                 title="Text Color (Click to apply current / Hover to choose)"
                 style={{ color: textColor }}
               >
@@ -369,8 +300,6 @@ const highlightPresetColors = [
                 </div>
               )}
             </div>
-
-          
 
             {/* Save + View */}
             <div
@@ -398,13 +327,14 @@ const highlightPresetColors = [
               )}
             </div>
 
-            {/* Read Aloud Button */}
+            {/* Read Aloud (Puter TTS - Japanese) */}
             <button
               onClick={handleReadAloud}
-              title="Read Aloud"
-              className="read-btn"
+              title="Read Aloud (Japanese)"
+              className={`read-btn ${isSpeaking ? 'speaking' : ''}`}
+              disabled={isSpeaking}
             >
-              🔊
+              {isSpeaking ? '⏹️' : '🔊'}
             </button>
           </div>
         </div>
