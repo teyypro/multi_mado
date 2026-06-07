@@ -5,9 +5,6 @@ import { useSavedContent } from '../SaveData/SavedContentContext';
 import SavedContentsViewer from '../SaveData/SavedContentsViewer';
 import './FloatingToolbar.css';
 
-// Puter.js sẽ được load qua script tag trong index.html
-// <script src="https://js.puter.com/v2/"></script>
-
 const FloatingToolbar: React.FC = () => {
   const { activeQuillRef } = useQuillContext();
   const { addSavedContent } = useSavedContent();
@@ -27,7 +24,7 @@ const FloatingToolbar: React.FC = () => {
   const [isHoverSave, setIsHoverSave] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
 
-  // Puter TTS
+  // Web Speech API TTS
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Danh sách màu
@@ -42,6 +39,13 @@ const FloatingToolbar: React.FC = () => {
     '#9575CD', '#7986CB', '#64B5F6', '#4FC3F7', '#4DB6AC', '#81C784',
     '#AED581', '#DCE775',
   ];
+
+  // Hủy nói nếu component bị unmount
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
 
   // ── Xử lý hiển thị toolbar khi chọn text ──
   useEffect(() => {
@@ -157,15 +161,12 @@ const FloatingToolbar: React.FC = () => {
     }
   };
 
-  // ── Puter.js Japanese TTS ──
-  const handleReadAloud = async () => {
+  // ── Web Speech API Japanese TTS ──
+  const handleReadAloud = () => {
     if (isSpeaking) {
-      // Nếu đang đọc → dừng lại
-      try {
-        // Puter không có stop trực tiếp, nhưng ta có thể reload page hoặc dùng hack
-        // Cách đơn giản nhất: reload audio (nhưng không có API stop → thông báo)
-        alert('Đang phát. Vui lòng chờ hết hoặc reload trang để dừng.');
-      } catch {}
+      // Nếu đang đọc -> Dừng lại lập tức
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
       return;
     }
 
@@ -182,35 +183,33 @@ const FloatingToolbar: React.FC = () => {
       return;
     }
 
-    setIsSpeaking(true);
+    // Khởi tạo đối tượng đọc
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'ja-JP';
 
-    try {
-      // Puter TTS - Japanese (AWS Polly neural voices)
-      const audio = await (window as any).puter.ai.txt2speech(textToRead, {
-        language: 'ja-JP',
-        //voice: 'Mizuki',        // Rất tự nhiên (nữ)
-        voice: 'Kazuha',     // Nam - thay đổi nếu muốn
-        engine: 'neural',
-        provider: 'aws-polly',
-      });
-
-      audio.play();
-
-      // Khi kết thúc → reset trạng thái
-      audio.onended = () => {
-        setIsSpeaking(false);
-      };
-
-      audio.onerror = (err: any) => {
-        console.error('TTS error:', err);
-        setIsSpeaking(false);
-        alert('Không thể phát giọng nói. Vui lòng thử lại.');
-      };
-    } catch (err) {
-      console.error('Puter TTS failed:', err);
-      setIsSpeaking(false);
-      alert('Lỗi kết nối Puter TTS. Vui lòng kiểm tra mạng.');
+    // Tìm và chọn voice tiếng Nhật có sẵn trên hệ thống (nếu có)
+    const voices = window.speechSynthesis.getVoices();
+    const jaVoice = voices.find(voice => voice.lang.startsWith('ja'));
+    if (jaVoice) {
+      utterance.voice = jaVoice;
     }
+
+    // Sự kiện khi bắt đầu, kết thúc hoặc lỗi
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (err) => {
+      console.error('SpeechSynthesis error:', err);
+      setIsSpeaking(false);
+    };
+
+    // Thực hiện đọc
+    window.speechSynthesis.speak(utterance);
   };
 
   return (
@@ -327,12 +326,11 @@ const FloatingToolbar: React.FC = () => {
               )}
             </div>
 
-            {/* Read Aloud (Puter TTS - Japanese) */}
+            {/* Read Aloud (Web Speech API - Japanese) */}
             <button
               onClick={handleReadAloud}
-              title="Read Aloud (Japanese)"
+              title={isSpeaking ? "Stop" : "Read Aloud (Japanese)"}
               className={`read-btn ${isSpeaking ? 'speaking' : ''}`}
-              disabled={isSpeaking}
             >
               {isSpeaking ? '⏹️' : '🔊'}
             </button>

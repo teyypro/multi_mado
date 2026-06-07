@@ -122,6 +122,9 @@
 
 /* Đảm bảo editor chiếm hết chiều cao còn lại */
 .custom-quill-editor .ql-container {
-  height: 100% !important;
+      height: 100% !important;
+    background-color: #eeeeee;
+    margin: 0.3rem;
+    border-radius: 0.5rem;
 }
 
